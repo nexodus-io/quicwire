@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/lucas-clemente/quic-go"
+	"github.com/quic-go/quic-go"
 	"github.com/songgao/water"
 )
 
@@ -36,7 +36,7 @@ func (s *Client) Dial() error {
 		EnableDatagrams: true,
 	})
 	if err != nil {
-		return err–
+		return err
 	}
 	s.Connection = conn
 	if s.Handler != nil {

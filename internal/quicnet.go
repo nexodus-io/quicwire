@@ -39,6 +39,9 @@ func (qn *QuicNet) Start(ctx context.Context, wg *sync.WaitGroup) error {
 	if err := qn.createTunIface(); err != nil {
 		return err
 	}
+
+        // Start the server
+        qn.setupTunnel(wg)
 	return nil
 }
 
@@ -52,7 +55,7 @@ func (qn *QuicNet) createTunIface() error {
 	if err != nil {
 		return fmt.Errorf("Failed to create TUN interface: %w", err)
 	}
-	qn.logger.Info("TUN interface created: %v", iface.Name())
+	qn.logger.Infof("TUN interface created: %s", iface.Name())
 
 	// Assign an IP address to the TUN interface
 	localIpStr := fmt.Sprintf("%s/24", qn.localIp)
@@ -67,7 +70,7 @@ func (qn *QuicNet) createTunIface() error {
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("Failed to change the state to UP for the TUN interface: %v", err)
 	}
-	qn.logger.Info("TUN interface %s is up and running", iface.Name())
+	qn.logger.Infof("TUN interface %s is up and running", iface.Name())
 
 	qn.localIf = iface
 

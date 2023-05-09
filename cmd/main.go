@@ -2,17 +2,13 @@ package main
 
 import (
 	"context"
-	"fmt"
-	"log"
-	"net"
 	"os"
 	"os/signal"
 	"sync"
 	"syscall"
-	"time"
 
 	quicnet "github.com/packetdrop/quicnet/internal"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 	"go.uber.org/zap"
 )
 

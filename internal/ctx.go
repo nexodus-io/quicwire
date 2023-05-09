@@ -3,7 +3,7 @@ package quicnet
 import (
 	"encoding/json"
 
-	"github.com/lucas-clemente/quic-go"
+	"github.com/quic-go/quic-go"
 )
 
 type Ctx struct {
