@@ -12,29 +12,32 @@ import (
 )
 
 type QuicNet struct {
+        tunnelIp        string
 	localIp         string
 	localTunnelPort int
 	peerIp          string
 	logger          *zap.SugaredLogger
 	localIf         *water.Interface
-        isServer          bool
-        isClient          bool
+	isServer        bool
+	isClient        bool
 }
 
 func NewQuicNet(logger *zap.SugaredLogger,
+        tunnelIp   string,
 	localIp string,
 	peerIp string,
 	qnetTunnelPort int,
-        isServer bool,
-        isClient bool,) (*QuicNet, error) {
+	isServer bool,
+	isClient bool) (*QuicNet, error) {
 
 	qn := &QuicNet{
+                tunnelIp:        tunnelIp,
 		localIp:         localIp,
 		localTunnelPort: qnetTunnelPort,
 		peerIp:          peerIp,
 		logger:          logger,
-                isServer:        isServer,
-                isClient:       isClient,
+		isServer:        isServer,
+		isClient:        isClient,
 	}
 	return qn, nil
 }
@@ -46,8 +49,8 @@ func (qn *QuicNet) Start(ctx context.Context, wg *sync.WaitGroup) error {
 		return err
 	}
 
-        // Start the server
-        qn.setupTunnel(wg)
+	// Start the server
+	qn.setupTunnel(wg)
 	return nil
 }
 
@@ -85,64 +88,68 @@ func (qn *QuicNet) createTunIface() error {
 
 func (qn *QuicNet) setupTunnel(wg *sync.WaitGroup) {
 
-	go func() {
-		// server mode
-		ctx, cancel := context.WithCancel(context.Background())
-		defer cancel()
+	if qn.isServer {
+		go func() {
+			// server mode
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
 
-		localipPortStr := fmt.Sprintf("%s:%d", qn.localIp, qn.localTunnelPort)
+			localipPortStr := fmt.Sprintf("%s:%d", qn.localIp, qn.localTunnelPort)
 
-                qn.logger.Infof("Starting server on %s", localipPortStr)
+			qn.logger.Infof("Starting server on %s", localipPortStr)
 
-		s := NewServer(localipPortStr, qn.localIf)
-		s.SetHandler(func(c Ctx) error {
-			msg := c.String()
-			qn.logger.Infof("Client [ %s ] sent a message [ %s ]", c.RemoteAddr().String(), msg)
-			return nil
-		})
-		qn.logger.Fatal(s.StartServer(ctx))
-	}()
+			s := NewServer(localipPortStr, qn.localIf)
+			s.SetHandler(func(c Ctx) error {
+				msg := c.String()
+				qn.logger.Infof("Client [ %s ] sent a message [ %s ]", c.RemoteAddr().String(), msg)
+				return nil
+			})
+			qn.logger.Fatal(s.StartServer(ctx))
+		}()
+	}
 
-	go func() {
-		_, cancel := context.WithCancel(context.Background())
-		defer cancel()
-		remotePeerPortStr := fmt.Sprintf("%s:%d", qn.peerIp, qn.localTunnelPort)
-		c := NewClient(remotePeerPortStr, qn.localIf)
-		//write while loop to call Dial till condition becomes true
-		retries := 0
-		for {
-			err := c.Dial()
-			if err != nil {
-				qn.logger.Warnf("Failed to dial: %v", err)
-				qn.logger.Warnf("Retrying to dial %s", remotePeerPortStr)
-				retries++
-			} else {
-				break
-			}
-			if retries > 5 {
-				break
-			}
-			time.Sleep(10 * time.Second)
-		}
-
-		// Start reading packets from the TUN interface
-		packet := make([]byte, 1500)
-		for {
-			n, err := qn.localIf.Read(packet)
-			if err != nil {
-				qn.logger.Fatalf("Failed to read packet from TUN interface: %v", err)
-				panic(err)
+	if qn.isClient {
+		go func() {
+			_, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			remotePeerPortStr := fmt.Sprintf("%s:%d", qn.peerIp, qn.localTunnelPort)
+			c := NewClient(remotePeerPortStr, qn.localIf)
+			//write while loop to call Dial till condition becomes true
+			retries := 0
+			for {
+				err := c.Dial()
+				if err != nil {
+					qn.logger.Warnf("Failed to dial: %v", err)
+					qn.logger.Warnf("Retrying to dial %s", remotePeerPortStr)
+					retries++
+				} else {
+					break
+				}
+				if retries > 5 {
+					break
+				}
+				time.Sleep(10 * time.Second)
 			}
 
-			// Do something with the packet
-			qn.logger.Info("Received packet: %v", packet[:n])
-			err = c.SendBytes(packet)
-			if err != nil {
-				fmt.Printf("failed to send client message: %v", err)
+			// Start reading packets from the TUN interface
+			packet := make([]byte, 1500)
+			for {
+				n, err := qn.localIf.Read(packet)
+				if err != nil {
+					qn.logger.Fatalf("Failed to read packet from TUN interface: %v", err)
+					panic(err)
+				}
+
+				// Do something with the packet
+				qn.logger.Info("Received packet: %v", packet[:n])
+				err = c.SendBytes(packet)
+				if err != nil {
+					fmt.Printf("failed to send client message: %v", err)
+				}
+
 			}
 
-		}
-
-	}()
+		}()
+	}
 
 }
