@@ -17,18 +17,24 @@ type QuicNet struct {
 	peerIp          string
 	logger          *zap.SugaredLogger
 	localIf         *water.Interface
+        isServer          bool
+        isClient          bool
 }
 
 func NewQuicNet(logger *zap.SugaredLogger,
 	localIp string,
 	peerIp string,
-	qnetTunnelPort int) (*QuicNet, error) {
+	qnetTunnelPort int,
+        isServer bool,
+        isClient bool,) (*QuicNet, error) {
 
 	qn := &QuicNet{
 		localIp:         localIp,
 		localTunnelPort: qnetTunnelPort,
 		peerIp:          peerIp,
 		logger:          logger,
+                isServer:        isServer,
+                isClient:       isClient,
 	}
 	return qn, nil
 }
@@ -85,6 +91,9 @@ func (qn *QuicNet) setupTunnel(wg *sync.WaitGroup) {
 		defer cancel()
 
 		localipPortStr := fmt.Sprintf("%s:%d", qn.localIp, qn.localTunnelPort)
+
+                qn.logger.Infof("Starting server on %s", localipPortStr)
+
 		s := NewServer(localipPortStr, qn.localIf)
 		s.SetHandler(func(c Ctx) error {
 			msg := c.String()

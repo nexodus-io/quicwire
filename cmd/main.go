@@ -26,6 +26,8 @@ func qnetRun(cCtx *cli.Context, logger *zap.Logger) error {
 		cCtx.String("local-ip"),
 		cCtx.String("peer-ip"),
 		qnetTunnelPort,
+                cCtx.Bool("server"),
+                cCtx.Bool("client"),
 	)
 	if err != nil {
 		logger.Fatal(err.Error())
@@ -80,6 +82,20 @@ func main() {
 				Value:    "",
 				Usage:    "IP address for the remote peer interface.",
 				Required: true,
+				Category: tunnelOptions,
+			},
+			&cli.BoolFlag{
+				Name:     "server",
+				Value:    false,
+				Usage:    "Run in server mode, only receive connections.",
+				Required: false,
+				Category: tunnelOptions,
+			},
+			&cli.BoolFlag{
+				Name:     "client",
+				Value:    false,
+				Usage:    "IP address for the remote peer interface.",
+				Required: false,
 				Category: tunnelOptions,
 			},
 		},
