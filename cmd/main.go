@@ -15,7 +15,6 @@ import (
 const (
 	qnetLogEnv     = "QNET_LOGLEVEL"
 	tunnelOptions      = "Tunnel Options"
-	qnetTunnelPort     = 51830
 )
 
 func qnetRun(cCtx *cli.Context, logger *zap.Logger) error {
@@ -23,10 +22,7 @@ func qnetRun(cCtx *cli.Context, logger *zap.Logger) error {
 
 	qnet, err := quicnet.NewQuicNet(
 		logger.Sugar(),
-		cCtx.String("tunnel-ip"),
-                cCtx.String("local-ip"),
-		cCtx.String("peer-ip"),
-		qnetTunnelPort,
+                cCtx.String("config-file"),
                 cCtx.Bool("server"),
                 cCtx.Bool("client"),
 	)
@@ -72,23 +68,9 @@ func main() {
 		Usage:     "Agent to configure encrypted mesh networking using QUIC protocol.",
 		Flags: []cli.Flag{
 			&cli.StringFlag{
-				Name:     "tunnel-ip",
+				Name:     "config-file",
 				Value:    "",
-				Usage:    "IP address for the local tunnel interface.",
-				Required: true,
-				Category: tunnelOptions,
-			},
-			&cli.StringFlag{
-				Name:     "local-ip",
-				Value:    "",
-				Usage:    "Local host IP address of the device",
-				Required: true,
-				Category: tunnelOptions,
-			},
-			&cli.StringFlag{
-				Name:     "peer-ip",
-				Value:    "",
-				Usage:    "IP address for the remote peer interface.",
+				Usage:    "Quic network configuration file",
 				Required: true,
 				Category: tunnelOptions,
 			},
