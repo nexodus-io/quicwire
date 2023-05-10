@@ -10,6 +10,7 @@ import (
 	"os"
 
 	"github.com/quic-go/quic-go"
+	"github.com/songgao/water"
 )
 
 type Handler func(Ctx) error
@@ -38,13 +39,14 @@ func getTLSConfig() *tls.Config {
 	}
 }
 
-func handleMsg(conn quic.Connection, handler Handler) error {
+func handleMsg(tunIp *water.Interface, conn quic.Connection, handler Handler) error {
 	for {
 		data, err := conn.ReceiveMessage()
 		if err != nil {
 			return err
 		}
 		err = handler(Ctx{
+                        localIf: tunIp,
 			Connection: conn,
 			Data:       data,
 		})

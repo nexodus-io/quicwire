@@ -41,7 +41,7 @@ func (s *Client) Dial() error {
 	s.Connection = conn
 	if s.Handler != nil {
 		go func() {
-			err := handleMsg(conn, s.Handler)
+			err := handleMsg(s.TunnelInterface, conn, s.Handler)
 			if err != nil {
 				fmt.Printf("handler err: %v", err)
 			}
