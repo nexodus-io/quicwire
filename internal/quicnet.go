@@ -67,8 +67,8 @@ func (qn *QuicNet) createTunIface() error {
 	qn.logger.Infof("TUN interface created: %s", iface.Name())
 
 	// Assign an IP address to the TUN interface
-	localIpStr := fmt.Sprintf("%s/24", qn.localIp)
-	cmd := exec.Command("ip", "addr", "add", localIpStr, "dev", iface.Name())
+	tunnelIpStr := fmt.Sprintf("%s/24", qn.tunnelIp)
+	cmd := exec.Command("ip", "addr", "add", tunnelIpStr, "dev", iface.Name())
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("Failed to assign IP address to TUN interface: %w", err)
 	}
