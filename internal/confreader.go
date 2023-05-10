@@ -34,13 +34,9 @@ func readQuicConf(qc *QuicConf, configFile string) error {
 	scanner := bufio.NewScanner(file)
 
 	// Variables to store values from the file
-	var section string
+	var section, localEndpoint, localNodeIp, endpoint, persistentKeepalive string
 	var listenPort int
-	var localEndpoint string
-	var localNodeIp string
 	var allowedIPs []string
-	var endpoint string
-	var persistentKeepalive string
 
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -54,6 +50,20 @@ func readQuicConf(qc *QuicConf, configFile string) error {
 
 		// Check if the line starts with a section header
 		if line[0] == '[' && line[len(line)-1] == ']' {
+			if section != "" && section == "Interface" {
+				qc.nodeInterface.listenPort = listenPort
+				qc.nodeInterface.localNodeIp = localNodeIp
+				qc.nodeInterface.localEndpoint = localEndpoint
+			}
+
+			if section != "" && section == "Peer" {
+				qc.peers = append(qc.peers, peer{
+					allowedIPs:          allowedIPs,
+					endpoint:            endpoint,
+					persistentKeepalive: persistentKeepalive,
+				})
+			}
+
 			// Extract the section name and print it
 			section = line[1 : len(line)-1]
 
@@ -75,7 +85,9 @@ func readQuicConf(qc *QuicConf, configFile string) error {
 			switch key {
 			case "ListenPort":
 				listenPort, err = strconv.Atoi(value)
-				return err
+				if err != nil {
+					return err
+				}
 			case "LocalEndpoint":
 				localEndpoint = value
 			case "LocalNodeIp":
@@ -89,21 +101,20 @@ func readQuicConf(qc *QuicConf, configFile string) error {
 			default:
 			}
 
-			if section == "Interface" {
-				qc.nodeInterface.listenPort = listenPort
-				qc.nodeInterface.localNodeIp = localNodeIp
-				qc.nodeInterface.localEndpoint = localEndpoint
-			}
-
-			if section == "Peer" {
-				qc.peers = append(qc.peers, peer{
-					allowedIPs:          allowedIPs,
-					endpoint:            endpoint,
-					persistentKeepalive: persistentKeepalive,
-				})
-			}
-
 		}
+	}
+	if section != "" && section == "Interface" {
+		qc.nodeInterface.listenPort = listenPort
+		qc.nodeInterface.localNodeIp = localNodeIp
+		qc.nodeInterface.localEndpoint = localEndpoint
+	}
+
+	if section != "" && section == "Peer" {
+		qc.peers = append(qc.peers, peer{
+			allowedIPs:          allowedIPs,
+			endpoint:            endpoint,
+			persistentKeepalive: persistentKeepalive,
+		})
 	}
 
 	if err := scanner.Err(); err != nil {
