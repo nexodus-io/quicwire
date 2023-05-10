@@ -12,38 +12,38 @@ import (
 )
 
 type QuicNet struct {
-        qc              *QuicConf
-	logger          *zap.SugaredLogger
-        configFile      string
-	isServer        bool
-	isClient        bool
-        
-        // QuicNet state data
-        localIf         *water.Interface
+	qc         *QuicConf
+	logger     *zap.SugaredLogger
+	configFile string
+	isServer   bool
+	isClient   bool
+
+	// QuicNet state data
+	localIf *water.Interface
 }
 
 func NewQuicNet(logger *zap.SugaredLogger,
-        configFile string,
+	configFile string,
 	isServer bool,
 	isClient bool) (*QuicNet, error) {
 
 	qn := &QuicNet{
-                qc: &QuicConf{},
-		logger:          logger,
-                configFile:     configFile,
-		isServer:        isServer,
-		isClient:        isClient,
+		qc:         &QuicConf{},
+		logger:     logger,
+		configFile: configFile,
+		isServer:   isServer,
+		isClient:   isClient,
 	}
 	return qn, nil
 }
 
 func (qn *QuicNet) Start(ctx context.Context, wg *sync.WaitGroup) error {
 	qn.logger.Info("QuicNet Starting")
-        qn.logger.Info("Read the quic config file : %s", confFilePath)
-        err := readQuicConf(qn.qc, qn.configFile)
-        if err != nil {
-                return err
-        }
+	qn.logger.Infof("Read the quic config file : %s", qn.configFile)
+	err := readQuicConf(qn.qc, qn.configFile)
+	if err != nil {
+		return err
+	}
 
 	qn.logger.Info("Trying to create tunnel interface on local host")
 	if err := qn.createTunIface(); err != nil {
@@ -95,14 +95,13 @@ func (qn *QuicNet) setupTunnel(wg *sync.WaitGroup) {
 			defer cancel()
 
 			localipPortStr := fmt.Sprintf("%s:%d", qn.qc.nodeInterface.localNodeIp, qn.qc.nodeInterface.listenPort)
-
 			qn.logger.Infof("Starting server on %s", localipPortStr)
 
 			s := NewServer(localipPortStr, qn.localIf)
 			s.SetHandler(func(c Ctx) error {
 				msg := c.Data
 				qn.logger.Debugf("Client [ %s ] sent a message [ %v ]", c.RemoteAddr().String(), msg)
-                                c.localIf.Write(c.Data)
+				c.localIf.Write(c.Data)
 				return nil
 			})
 			qn.logger.Fatal(s.StartServer(ctx))
@@ -110,7 +109,7 @@ func (qn *QuicNet) setupTunnel(wg *sync.WaitGroup) {
 	}
 
 	if qn.isClient {
-                peer := qn.qc.peers[0]
+		peer := qn.qc.peers[0]
 		go func() {
 			_, cancel := context.WithCancel(context.Background())
 			defer cancel()

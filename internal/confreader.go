@@ -3,10 +3,9 @@ package quicnet
 import (
 	"bufio"
 	"os"
+	"strconv"
 	"strings"
 )
-
-const confFilePath = "/etc/quic/quic.conf"
 
 type peer struct {
 	allowedIPs          []string
@@ -15,7 +14,7 @@ type peer struct {
 }
 
 type nodeInterface struct {
-	listenPort    string
+	listenPort    int
 	localEndpoint string
 	localNodeIp   string
 }
@@ -36,7 +35,7 @@ func readQuicConf(qc *QuicConf, configFile string) error {
 
 	// Variables to store values from the file
 	var section string
-	var listenPort string
+	var listenPort int
 	var localEndpoint string
 	var localNodeIp string
 	var allowedIPs []string
@@ -75,7 +74,8 @@ func readQuicConf(qc *QuicConf, configFile string) error {
 			// Store the values in the corresponding variables
 			switch key {
 			case "ListenPort":
-				listenPort = value
+				listenPort, err = strconv.Atoi(value)
+				return err
 			case "LocalEndpoint":
 				localEndpoint = value
 			case "LocalNodeIp":

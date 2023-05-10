@@ -13,8 +13,8 @@ import (
 )
 
 const (
-	qnetLogEnv     = "QNET_LOGLEVEL"
-	tunnelOptions      = "Tunnel Options"
+	qnetLogEnv    = "QNET_LOGLEVEL"
+	tunnelOptions = "Tunnel Options"
 )
 
 func qnetRun(cCtx *cli.Context, logger *zap.Logger) error {
@@ -22,9 +22,9 @@ func qnetRun(cCtx *cli.Context, logger *zap.Logger) error {
 
 	qnet, err := quicnet.NewQuicNet(
 		logger.Sugar(),
-                cCtx.String("config-file"),
-                cCtx.Bool("server"),
-                cCtx.Bool("client"),
+		cCtx.String("config-file"),
+		cCtx.Bool("server"),
+		cCtx.Bool("client"),
 	)
 	if err != nil {
 		logger.Fatal(err.Error())
@@ -64,8 +64,8 @@ func main() {
 	cli.HelpFlag.(*cli.BoolFlag).Usage = "Show help"
 	// flags are stored in the global flags variable
 	app := &cli.App{
-		Name:      "qnet",
-		Usage:     "Agent to configure encrypted mesh networking using QUIC protocol.",
+		Name:  "qnet",
+		Usage: "Agent to configure encrypted mesh networking using QUIC protocol.",
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:     "config-file",
@@ -92,7 +92,6 @@ func main() {
 		Action: func(cCtx *cli.Context) error {
 			return qnetRun(cCtx, logger)
 		},
-
 	}
 	if err := app.Run(os.Args); err != nil {
 		logger.Fatal(err.Error())

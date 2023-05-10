@@ -8,7 +8,7 @@ import (
 )
 
 type Ctx struct {
-        localIf         *water.Interface
+	localIf *water.Interface
 	quic.Connection
 	Data []byte
 }

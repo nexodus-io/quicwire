@@ -9,14 +9,14 @@ import (
 )
 
 type Server struct {
-	Addr    string
+	Addr            string
 	TunnelInterface *water.Interface
-	Handler Handler
+	Handler         Handler
 }
 
 func NewServer(addr string, tunIface *water.Interface) *Server {
 	return &Server{
-		Addr: addr,
+		Addr:            addr,
 		TunnelInterface: tunIface,
 	}
 }
@@ -38,7 +38,7 @@ func (s *Server) StartServer(ctx context.Context) error {
 			return err
 		}
 		go func() {
-			err := handleMsg(s.TunnelInterface,conn, s.Handler)
+			err := handleMsg(s.TunnelInterface, conn, s.Handler)
 			if err != nil {
 				fmt.Printf("handler err: %v", err)
 			}

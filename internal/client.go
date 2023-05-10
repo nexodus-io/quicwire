@@ -10,17 +10,16 @@ import (
 )
 
 type Client struct {
-	Addr    string
-	Handler Handler
+	Addr            string
+	Handler         Handler
 	TunnelInterface *water.Interface
 	quic.Connection
-
 }
 
 func NewClient(addr string, tunIface *water.Interface) *Client {
 	return &Client{
-		Addr: addr,
-		TunnelInterface: tunIface,}
+		Addr:            addr,
+		TunnelInterface: tunIface}
 }
 
 func (s *Client) SetHandler(handler Handler) {
