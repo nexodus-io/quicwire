@@ -100,8 +100,9 @@ func (qn *QuicNet) setupTunnel(wg *sync.WaitGroup) {
 
 			s := NewServer(localipPortStr, qn.localIf)
 			s.SetHandler(func(c Ctx) error {
-				msg := c.String()
-				qn.logger.Infof("Client [ %s ] sent a message [ %s ]", c.RemoteAddr().String(), msg)
+				msg := c.Data
+				qn.logger.Infof("Client [ %s ] sent a message [ %v ]", c.RemoteAddr().String(), msg)
+                                c.localIf.Write(c.Data)
 				return nil
 			})
 			qn.logger.Fatal(s.StartServer(ctx))
