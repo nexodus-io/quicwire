@@ -15,6 +15,11 @@ build: dist ## Build quicnet
 	$(ECHO_PREFIX) printf "  %-12s $@\n" "[GO BUILD]"
 	$(CMD_PREFIX) CGO_ENABLED=0 go build -gcflags="$(NEXODUS_GCFLAGS)" -o dist/quicnet ./cmd
 
+.PHONY: format
+format:  ## Format source code
+	$(ECHO_PREFIX) printf "  %-12s $@\n" "[GO FMT]"
+	$(CMD_PREFIX) CGO_ENABLED=0 go fmt ./...
+
 .PHONY: clean
 clean: dist ## Build quicnet
 	$(CMD_PREFIX) rm -rd dist
