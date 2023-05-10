@@ -142,7 +142,7 @@ func (qn *QuicNet) setupTunnel(wg *sync.WaitGroup) {
 
 				// Do something with the packet
 				qn.logger.Info("Received packet: %v", packet[:n])
-				err = c.SendBytes(packet)
+				err = c.SendBytes(packet[:n])
 				if err != nil {
 					fmt.Printf("failed to send client message: %v", err)
 				}
