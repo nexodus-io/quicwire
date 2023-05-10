@@ -44,7 +44,7 @@ func (qn *QuicNet) Start(ctx context.Context, wg *sync.WaitGroup) error {
 	if err != nil {
 		return err
 	}
-
+	qn.logger.Infof("QuicNet config: %v", qn.qc)
 	qn.logger.Info("Trying to create tunnel interface on local host")
 	if err := qn.createTunIface(); err != nil {
 		return err
