@@ -11,7 +11,7 @@ dist:
 
 ##@ Build
 .PHONY: build
-build: dist ## Build quicnet
+build: dist ## Build quicmesh
 	$(ECHO_PREFIX) printf "  %-12s $@\n" "[GO BUILD]"
 	$(CMD_PREFIX) CGO_ENABLED=0 go build -gcflags="$(NEXODUS_GCFLAGS)" -o dist/quicmesh ./cmd
 
@@ -30,5 +30,5 @@ format:  ## Format source code
 	$(CMD_PREFIX) CGO_ENABLED=0 go fmt ./...
 
 .PHONY: clean
-clean: dist ## Build quicnet
+clean: ## Clean quicmesh binaries
 	$(CMD_PREFIX) rm -rd dist

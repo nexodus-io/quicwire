@@ -7,7 +7,7 @@ import (
 	"sync"
 	"syscall"
 
-	quicnet "github.com/packetdrop/quicnet/internal"
+	quicmesh "github.com/packetdrop/quicmesh/internal"
 	"github.com/urfave/cli/v2"
 	"go.uber.org/zap"
 )
@@ -20,7 +20,7 @@ const (
 func qnetRun(cCtx *cli.Context, logger *zap.Logger) error {
 	ctx, _ := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGINT)
 
-	qnet, err := quicnet.NewQuicNet(
+	qnet, err := quicmesh.NewQuicNet(
 		logger.Sugar(),
 		cCtx.String("config-file"),
 		cCtx.Bool("server"),
