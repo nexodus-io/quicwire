@@ -20,11 +20,9 @@ const (
 func qnetRun(cCtx *cli.Context, logger *zap.Logger) error {
 	ctx, _ := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGINT)
 
-	qnet, err := quicmesh.NewQuicNet(
+	qnet, err := quicmesh.NewQuicMesh(
 		logger.Sugar(),
 		cCtx.String("config-file"),
-		cCtx.Bool("server"),
-		cCtx.Bool("client"),
 	)
 	if err != nil {
 		logger.Fatal(err.Error())
@@ -72,20 +70,6 @@ func main() {
 				Value:    "",
 				Usage:    "Quic network configuration file",
 				Required: true,
-				Category: tunnelOptions,
-			},
-			&cli.BoolFlag{
-				Name:     "server",
-				Value:    false,
-				Usage:    "Run in server mode, only receive connections.",
-				Required: false,
-				Category: tunnelOptions,
-			},
-			&cli.BoolFlag{
-				Name:     "client",
-				Value:    false,
-				Usage:    "IP address for the remote peer interface.",
-				Required: false,
 				Category: tunnelOptions,
 			},
 		},
