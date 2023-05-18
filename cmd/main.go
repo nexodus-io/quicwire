@@ -64,7 +64,7 @@ func main() {
 	cli.HelpFlag.(*cli.BoolFlag).Usage = "Show help"
 	// flags are stored in the global flags variable
 	app := &cli.App{
-		Name:  "qnet",
+		Name:  "qmesh",
 		Usage: "Agent to configure encrypted mesh networking using QUIC protocol.",
 		Flags: []cli.Flag{
 			&cli.StringFlag{
