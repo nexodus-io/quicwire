@@ -13,7 +13,7 @@ dist:
 .PHONY: build
 build: dist ## Build quicnet
 	$(ECHO_PREFIX) printf "  %-12s $@\n" "[GO BUILD]"
-	$(CMD_PREFIX) CGO_ENABLED=0 go build -gcflags="$(NEXODUS_GCFLAGS)" -o dist/quicnet ./cmd
+	$(CMD_PREFIX) CGO_ENABLED=0 go build -gcflags="$(NEXODUS_GCFLAGS)" -o dist/quicmesh ./cmd
 
 .PHONY: build-stun
 build-stun:  dist ## Build stun client
