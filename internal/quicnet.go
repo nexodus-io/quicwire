@@ -1,4 +1,4 @@
-package quicnet
+package quicmesh
 
 import (
 	"context"
@@ -13,12 +13,10 @@ import (
 	"go.uber.org/zap"
 )
 
-type QuicNet struct {
+type QuicMesh struct {
 	qc         *QuicConf
 	logger     *zap.SugaredLogger
 	configFile string
-	isServer   bool
-	isClient   bool
 
 	// QuicNet state data
 	localIf *water.Interface
@@ -26,23 +24,19 @@ type QuicNet struct {
 	connections map[string]quic.Connection
 }
 
-func NewQuicNet(logger *zap.SugaredLogger,
-	configFile string,
-	isServer bool,
-	isClient bool) (*QuicNet, error) {
+func NewQuicMesh(logger *zap.SugaredLogger,
+	configFile string) (*QuicMesh, error) {
 
-	qn := &QuicNet{
+	qn := &QuicMesh{
 		qc:          &QuicConf{},
 		logger:      logger,
 		configFile:  configFile,
-		isServer:    isServer,
-		isClient:    isClient,
 		connections: make(map[string]quic.Connection),
 	}
 	return qn, nil
 }
 
-func (qn *QuicNet) Start(ctx context.Context, wg *sync.WaitGroup) error {
+func (qn *QuicMesh) Start(ctx context.Context, wg *sync.WaitGroup) error {
 	qn.logger.Info("QuicMesh Starting")
 	qn.logger.Infof("Read the quic config file : %s", qn.configFile)
 	err := readQuicConf(qn.qc, qn.configFile)
@@ -60,11 +54,11 @@ func (qn *QuicNet) Start(ctx context.Context, wg *sync.WaitGroup) error {
 	return nil
 }
 
-func (qn *QuicNet) Stop() {
+func (qn *QuicMesh) Stop() {
 	qn.logger.Info("QuicMesh Stop")
 }
 
-func (qn *QuicNet) createTunIface() error {
+func (qn *QuicMesh) createTunIface() error {
 	// Create a TUN interface
 	iface, err := water.New(water.Config{DeviceType: water.TUN})
 	if err != nil {
@@ -91,7 +85,7 @@ func (qn *QuicNet) createTunIface() error {
 	return nil
 }
 
-func (qn *QuicNet) setupTunnel(wg *sync.WaitGroup) {
+func (qn *QuicMesh) setupTunnel(wg *sync.WaitGroup) {
 
 	go func() {
 		// server mode

@@ -1,4 +1,4 @@
-package quicnet
+package quicmesh
 
 import (
 	"encoding/json"
