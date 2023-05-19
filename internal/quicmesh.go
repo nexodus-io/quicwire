@@ -18,6 +18,13 @@ const (
 	retries       = 10
 )
 
+type packetContext struct {
+	localIf *water.Interface
+	quic.Connection
+	Data []byte
+}
+
+// QuicMesh struct holds state need to enable connectivity to peers
 type QuicMesh struct {
 	qc         *QuicConf
 	logger     *zap.SugaredLogger
@@ -30,6 +37,7 @@ type QuicMesh struct {
 	clients     map[string]*Client
 }
 
+// NewQuicMesh creates a new QuicMesh
 func NewQuicMesh(logger *zap.SugaredLogger,
 	configFile string) (*QuicMesh, error) {
 
@@ -43,6 +51,7 @@ func NewQuicMesh(logger *zap.SugaredLogger,
 	return qn, nil
 }
 
+// Start Initializes the QuicMesh network
 func (qn *QuicMesh) Start(ctx context.Context, wg *sync.WaitGroup) error {
 	qn.logger.Info("QuicMesh Starting")
 	qn.logger.Infof("Read the quic config file : %s", qn.configFile)
@@ -62,6 +71,7 @@ func (qn *QuicMesh) Start(ctx context.Context, wg *sync.WaitGroup) error {
 	return nil
 }
 
+// Stop stops the QuicMesh network
 func (qn *QuicMesh) Stop() {
 	qn.logger.Info("QuicMesh Stop")
 }
@@ -75,8 +85,8 @@ func (qn *QuicMesh) createTunIface() error {
 	qn.logger.Debugf("TUN interface created: %s", iface.Name())
 
 	// Assign an IP address to the TUN interface
-	tunnelIpStr := fmt.Sprintf("%s/24", qn.qc.nodeInterface.localEndpoint)
-	cmd := exec.Command("ip", "addr", "add", tunnelIpStr, "dev", iface.Name())
+	tunnelIPStr := fmt.Sprintf("%s/24", qn.qc.nodeInterface.localEndpoint)
+	cmd := exec.Command("ip", "addr", "add", tunnelIPStr, "dev", iface.Name())
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("Failed to assign IP address to TUN interface: %w", err)
 	}
@@ -100,10 +110,10 @@ func (qn *QuicMesh) setupTunnel(wg *sync.WaitGroup) {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
-		localipPortStr := fmt.Sprintf("%s:%d", qn.qc.nodeInterface.localNodeIp, qn.qc.nodeInterface.listenPort)
+		localipPortStr := fmt.Sprintf("%s:%d", qn.qc.nodeInterface.localNodeIP, qn.qc.nodeInterface.listenPort)
 		qn.logger.Infof("Starting server on %s", localipPortStr)
 		s := NewServer(localipPortStr, qn.localIf, qn.logger)
-		s.SetHandler(func(c Ctx) error {
+		s.SetHandler(func(c packetContext) error {
 			msg := c.Data
 			qn.logger.Debugf("Client [ %s ] sent a message [ %v ] over client initiated connection", c.RemoteAddr().String(), msg)
 			c.localIf.Write(c.Data)
@@ -121,7 +131,7 @@ func (qn *QuicMesh) setupTunnel(wg *sync.WaitGroup) {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
-			c := NewClient(peer.endpoint, qn.qc.nodeInterface.localNodeIp, qn.qc.nodeInterface.listenPort, qn.localIf, qn.logger)
+			c := NewClient(peer.endpoint, qn.qc.nodeInterface.localNodeIP, qn.qc.nodeInterface.listenPort, qn.localIf, qn.logger)
 
 			//split endpoint to get ip and port
 			host, _, err := net.SplitHostPort(peer.endpoint)
@@ -134,25 +144,23 @@ func (qn *QuicMesh) setupTunnel(wg *sync.WaitGroup) {
 					qn.logger.Infof("Connection already exists for peer endpoint %s", peer.endpoint)
 					c.SetConnection(conn)
 					return nil
-				} else {
-					qn.logger.Debugf("No existing connection to the peer endpoint %s.", peer.endpoint)
-
-					err := c.Dial()
-					if err != nil {
-						qn.logger.Debugf("Failed to dial: %v", err)
-						qn.logger.Warnf("Retrying to dial %s", peer.endpoint)
-						return err
-					} else {
-						qn.logger.Infof("Dialed new connection to peer endpoint %s.", peer.endpoint)
-						c.AttachHandler(func(c Ctx) error {
-							msg := c.Data
-							qn.logger.Debugf("Client [ %s ] sent a message [ %v ] over server initiated connection", c.RemoteAddr().String(), msg)
-							c.localIf.Write(c.Data)
-							return nil
-						})
-						return nil
-					}
 				}
+				qn.logger.Debugf("No existing connection to the peer endpoint %s.", peer.endpoint)
+
+				err := c.Dial()
+				if err != nil {
+					qn.logger.Debugf("Failed to dial: %v", err)
+					qn.logger.Warnf("Retrying to dial %s", peer.endpoint)
+					return err
+				}
+				qn.logger.Infof("Dialed new connection to peer endpoint %s.", peer.endpoint)
+				c.AttachHandler(func(c packetContext) error {
+					msg := c.Data
+					qn.logger.Debugf("Client [ %s ] sent a message [ %v ] over server initiated connection", c.RemoteAddr().String(), msg)
+					c.localIf.Write(c.Data)
+					return nil
+				})
+				return nil
 			})
 			if err != nil {
 				qn.logger.Fatalf("Peer is not reachable or : %v", err)
@@ -173,19 +181,19 @@ func (qn *QuicMesh) enableTrafficForwarding() error {
 				panic(err)
 			}
 
-			dstIp := net.IP(packet[16:20])
+			dstIP := net.IP(packet[16:20])
 
 			// Do something with the packet
-			qn.logger.Debugf("Received packet from local tun interface: %v for destination %s", packet[:n], dstIp.String())
+			qn.logger.Debugf("Received packet from local tun interface: %v for destination %s", packet[:n], dstIP.String())
 
 			//check if dstIp is in the list of peers
-			if c, ok := qn.clients[dstIp.String()]; ok {
+			if c, ok := qn.clients[dstIP.String()]; ok {
 				err = c.SendBytes(packet[:n])
 				if err != nil {
 					qn.logger.Errorf("failed to send client message: %v", err)
 				}
 			} else {
-				qn.logger.Debugf("No client connection found for destination IP %s", dstIp.String())
+				qn.logger.Debugf("No client connection found for destination IP %s", dstIP.String())
 			}
 		}
 	}()

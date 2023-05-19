@@ -16,7 +16,8 @@ import (
 	"github.com/songgao/water"
 )
 
-type Handler func(Ctx) error
+// Handler is a function that processes incoming packets
+type Handler func(packetContext) error
 
 // Setup a bare-bones TLS config for the server
 func getTLSConfig() *tls.Config {
@@ -42,14 +43,14 @@ func getTLSConfig() *tls.Config {
 	}
 }
 
-func handleMsg(tunIp *water.Interface, conn quic.Connection, handler Handler) error {
+func handleMsg(tunIP *water.Interface, conn quic.Connection, handler Handler) error {
 	for {
 		data, err := conn.ReceiveMessage()
 		if err != nil {
 			return err
 		}
-		err = handler(Ctx{
-			localIf:    tunIp,
+		err = handler(packetContext{
+			localIf:    tunIP,
 			Connection: conn,
 			Data:       data,
 		})

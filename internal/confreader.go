@@ -7,20 +7,23 @@ import (
 	"strings"
 )
 
+// Peer represents a peer in the quicmesh configuration file
 type Peer struct {
 	allowedIPs          []string
 	endpoint            string
 	persistentKeepalive string
 }
 
-type NodeInterface struct {
+// nodeInterface represents the node interface in the quicmesh configuration file
+type nodeInterface struct {
 	listenPort    int
 	localEndpoint string
-	localNodeIp   string
+	localNodeIP   string
 }
 
+// QuicConf contains the quicmesh configuration file data
 type QuicConf struct {
-	nodeInterface NodeInterface
+	nodeInterface nodeInterface
 	peers         []Peer
 }
 
@@ -34,7 +37,7 @@ func readQuicConf(qc *QuicConf, configFile string) error {
 	scanner := bufio.NewScanner(file)
 
 	// Variables to store values from the file
-	var section, localEndpoint, localNodeIp, endpoint, persistentKeepalive string
+	var section, localEndpoint, localNodeIP, endpoint, persistentKeepalive string
 	var listenPort int
 	var allowedIPs []string
 
@@ -52,7 +55,7 @@ func readQuicConf(qc *QuicConf, configFile string) error {
 		if line[0] == '[' && line[len(line)-1] == ']' {
 			if section != "" && section == "Interface" {
 				qc.nodeInterface.listenPort = listenPort
-				qc.nodeInterface.localNodeIp = localNodeIp
+				qc.nodeInterface.localNodeIP = localNodeIP
 				qc.nodeInterface.localEndpoint = localEndpoint
 			}
 
@@ -91,7 +94,7 @@ func readQuicConf(qc *QuicConf, configFile string) error {
 			case "LocalEndpoint":
 				localEndpoint = value
 			case "LocalNodeIp":
-				localNodeIp = value
+				localNodeIP = value
 			case "AllowedIPs":
 				allowedIPs = strings.Split(value, ",")
 			case "Endpoint":
@@ -105,7 +108,7 @@ func readQuicConf(qc *QuicConf, configFile string) error {
 	}
 	if section != "" && section == "Interface" {
 		qc.nodeInterface.listenPort = listenPort
-		qc.nodeInterface.localNodeIp = localNodeIp
+		qc.nodeInterface.localNodeIP = localNodeIP
 		qc.nodeInterface.localEndpoint = localEndpoint
 	}
 

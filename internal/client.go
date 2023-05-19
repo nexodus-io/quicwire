@@ -11,16 +11,18 @@ import (
 	"go.uber.org/zap"
 )
 
+// Client struct holds state need to enable connectivity to peer
 type Client struct {
-	Addr            string
+	addr            string
 	localip         net.IP
 	localport       int
-	Handler         Handler
-	TunnelInterface *water.Interface
+	handler         Handler
+	tunnelInterface *water.Interface
 	connection      quic.Connection
 	logger          *zap.SugaredLogger
 }
 
+// NewClient creates a new client
 func NewClient(addr string, localip string, localport int, tunIface *water.Interface, logger *zap.SugaredLogger) *Client {
 
 	ipAddr := net.ParseIP(localip)
@@ -29,28 +31,31 @@ func NewClient(addr string, localip string, localport int, tunIface *water.Inter
 		logger.Fatalf("Failed to parse IP address %s", localip)
 	}
 	return &Client{
-		Addr:            addr,
+		addr:            addr,
 		localip:         ipAddr,
 		localport:       localport,
-		TunnelInterface: tunIface,
+		tunnelInterface: tunIface,
 		logger:          logger,
 	}
 }
 
+// AttachHandler attaches a handler to process incoming packets
 func (c *Client) AttachHandler(handler Handler) {
-	c.Handler = handler
+	c.handler = handler
 	go func() {
-		err := handleMsg(c.TunnelInterface, c.connection, c.Handler)
+		err := handleMsg(c.tunnelInterface, c.connection, c.handler)
 		if err != nil {
 			fmt.Printf("handler err: %v", err)
 		}
 	}()
 }
 
+// SetConnection sets the currently active connection to the peer
 func (c *Client) SetConnection(conn quic.Connection) {
 	c.connection = conn
 }
 
+// Dial establishes a connection to the peer
 func (c *Client) Dial() error {
 	tlsConf := &tls.Config{
 		InsecureSkipVerify: true,
@@ -73,7 +78,7 @@ func (c *Client) Dial() error {
 	// 	EnableDatagrams: true,
 	// })
 
-	conn, err := quic.DialAddr(c.Addr, tlsConf, &quic.Config{
+	conn, err := quic.DialAddr(c.addr, tlsConf, &quic.Config{
 		KeepAlivePeriod: 10,
 		EnableDatagrams: true,
 	})
@@ -85,25 +90,28 @@ func (c *Client) Dial() error {
 	return nil
 }
 
+// Send converts string to byte array and sends it to the peer
 func (c *Client) Send(data string) error {
 	if c.connection == nil {
-		return fmt.Errorf("Client has no active connection to peer %s", c.Addr)
+		return fmt.Errorf("Client has no active connection to peer %s", c.addr)
 	}
 	err := c.connection.SendMessage([]byte(data))
 	return err
 }
 
+// SendBytes sends byte array to the peer
 func (c *Client) SendBytes(data []byte) error {
 	if c.connection == nil {
-		return fmt.Errorf("Client has no active connection to peer %s", c.Addr)
+		return fmt.Errorf("Client has no active connection to peer %s", c.addr)
 	}
 	err := c.connection.SendMessage(data)
 	return err
 }
 
-func (c *Client) SendJson(data any) error {
+// SendJSON converts data to json and sends it to the peer
+func (c *Client) SendJSON(data any) error {
 	if c.connection == nil {
-		return fmt.Errorf("Client has no active connection to peer %s", c.Addr)
+		return fmt.Errorf("Client has no active connection to peer %s", c.addr)
 	}
 	res, err := json.Marshal(data)
 	if err != nil {
