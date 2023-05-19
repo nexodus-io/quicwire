@@ -4,6 +4,8 @@ import (
 	"context"
 	"os"
 	"os/signal"
+	"runtime"
+	"runtime/pprof"
 	"sync"
 	"syscall"
 
@@ -15,11 +17,37 @@ import (
 const (
 	qnetLogEnv    = "QMESH_LOGLEVEL"
 	tunnelOptions = "Tunnel Options"
+	miscOptions   = "Misc Options"
 )
 
 func qnetRun(cCtx *cli.Context, logger *zap.Logger) error {
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGINT)
 	defer cancel()
+	if cCtx.String("cpuprofile") != "" {
+		pprofPath := cCtx.String("cpuprofile")
+		f, err := os.Create(pprofPath)
+		if err != nil {
+			logger.Fatal(err.Error())
+		}
+		defer f.Close()
+		if err := pprof.StartCPUProfile(f); err != nil {
+			logger.Fatal(err.Error())
+		}
+		defer pprof.StopCPUProfile()
+	}
+
+	if cCtx.String("memprofile") != "" {
+		pprofPath := cCtx.String("memprofile")
+		f, err := os.Create(pprofPath)
+		if err != nil {
+			logger.Fatal(err.Error())
+		}
+		defer f.Close()
+		runtime.GC()
+		if err := pprof.WriteHeapProfile(f); err != nil {
+			logger.Fatal(err.Error())
+		}
+	}
 
 	qmesh, err := quicmesh.NewQuicMesh(
 		logger.Sugar(),
@@ -72,6 +100,20 @@ func main() {
 				Usage:    "Quic network configuration file",
 				Required: true,
 				Category: tunnelOptions,
+			},
+			&cli.StringFlag{
+				Name:     "cpuprofile",
+				Value:    "",
+				Usage:    "Enable cpu profiling and dump pprof data to provided file",
+				Required: false,
+				Category: miscOptions,
+			},
+			&cli.StringFlag{
+				Name:     "memprofile",
+				Value:    "",
+				Usage:    "Enable memory profiling and dump pprof data to provided file",
+				Required: false,
+				Category: miscOptions,
 			},
 		},
 		Action: func(cCtx *cli.Context) error {

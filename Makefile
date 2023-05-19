@@ -24,10 +24,12 @@ build-stun:  dist ## Build stun client
 fire-stun:   ## Run stun client
 	$(CMD_PREFIX) ./dist/stun-client -source-port 55380 -check-symmetric
 
-.PHONY: format
-format:  ## Format source code
-	$(ECHO_PREFIX) printf "  %-12s $@\n" "[GO FMT]"
+.PHONY: prep
+prep:  ## Format source code
+	$(ECHO_PREFIX) printf "  %-12s $@\n" "[GO PREP]"
 	$(CMD_PREFIX) CGO_ENABLED=0 go fmt ./...
+	$(CMD_PREFIX) CGO_ENABLED=0 go vet ./...
+	$(CMD_PREFIX) CGO_ENABLED=0 golint ./...
 
 .PHONY: clean
 clean: ## Clean quicmesh binaries
