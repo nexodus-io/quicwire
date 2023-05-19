@@ -1,6 +1,7 @@
 {
 	"editor.insertSpaces": false,
 	"cSpell.words": [
-		"backoff"
+		"backoff",
+		"Debugf"
 	]
 }
