@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"sync"
 
 	"github.com/quic-go/quic-go"
 	"github.com/songgao/water"
@@ -29,13 +30,17 @@ func (s *Server) SetHandler(handler Handler) {
 	s.Handler = handler
 }
 
-func (s *Server) StartServer(ctx context.Context, connections map[string]quic.Connection) error {
+func (s *Server) StartServer(ctx context.Context, connections map[string]quic.Connection, wg *sync.WaitGroup) error {
 	listener, err := quic.ListenAddr(s.Addr, getTLSConfig(), &quic.Config{
+		KeepAlivePeriod: 10,
 		EnableDatagrams: true,
 	})
 	if err != nil {
 		return err
 	}
+
+	wg.Done()
+
 	for {
 		conn, err := listener.Accept(ctx)
 		s.logger.Infof("Accepted connection from %v and local address is %v", conn.RemoteAddr(), conn.LocalAddr())

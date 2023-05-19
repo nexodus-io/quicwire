@@ -13,14 +13,15 @@ import (
 )
 
 const (
-	qnetLogEnv    = "QNET_LOGLEVEL"
+	qnetLogEnv    = "QMESH_LOGLEVEL"
 	tunnelOptions = "Tunnel Options"
 )
 
 func qnetRun(cCtx *cli.Context, logger *zap.Logger) error {
-	ctx, _ := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGINT)
+	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGINT)
+	defer cancel()
 
-	qnet, err := quicmesh.NewQuicMesh(
+	qmesh, err := quicmesh.NewQuicMesh(
 		logger.Sugar(),
 		cCtx.String("config-file"),
 	)
@@ -30,11 +31,11 @@ func qnetRun(cCtx *cli.Context, logger *zap.Logger) error {
 
 	wg := &sync.WaitGroup{}
 
-	if err := qnet.Start(ctx, wg); err != nil {
+	if err := qmesh.Start(ctx, wg); err != nil {
 		logger.Fatal(err.Error())
 	}
 	<-ctx.Done()
-	qnet.Stop()
+	qmesh.Stop()
 	wg.Wait()
 
 	return nil

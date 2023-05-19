@@ -13,6 +13,11 @@ import (
 	"go.uber.org/zap"
 )
 
+const (
+	retryInterval = 5 * time.Second
+	retries       = 10
+)
+
 type QuicMesh struct {
 	qc         *QuicConf
 	logger     *zap.SugaredLogger
@@ -22,6 +27,7 @@ type QuicMesh struct {
 	localIf *water.Interface
 
 	connections map[string]quic.Connection
+	clients     map[string]*Client
 }
 
 func NewQuicMesh(logger *zap.SugaredLogger,
@@ -32,6 +38,7 @@ func NewQuicMesh(logger *zap.SugaredLogger,
 		logger:      logger,
 		configFile:  configFile,
 		connections: make(map[string]quic.Connection),
+		clients:     make(map[string]*Client),
 	}
 	return qn, nil
 }
@@ -43,14 +50,15 @@ func (qn *QuicMesh) Start(ctx context.Context, wg *sync.WaitGroup) error {
 	if err != nil {
 		return err
 	}
-	qn.logger.Infof("QuicNet config: %v", qn.qc)
-	qn.logger.Info("Trying to create tunnel interface on local host")
+	qn.logger.Debugf("QuicMesh config: %v", qn.qc)
+	qn.logger.Info("Create tunnel interface on local host")
 	if err := qn.createTunIface(); err != nil {
 		return err
 	}
 
 	// Start the server
 	qn.setupTunnel(wg)
+	qn.enableTrafficForwarding()
 	return nil
 }
 
@@ -86,7 +94,7 @@ func (qn *QuicMesh) createTunIface() error {
 }
 
 func (qn *QuicMesh) setupTunnel(wg *sync.WaitGroup) {
-
+	wg.Add(1)
 	go func() {
 		// server mode
 		ctx, cancel := context.WithCancel(context.Background())
@@ -94,7 +102,6 @@ func (qn *QuicMesh) setupTunnel(wg *sync.WaitGroup) {
 
 		localipPortStr := fmt.Sprintf("%s:%d", qn.qc.nodeInterface.localNodeIp, qn.qc.nodeInterface.listenPort)
 		qn.logger.Infof("Starting server on %s", localipPortStr)
-
 		s := NewServer(localipPortStr, qn.localIf, qn.logger)
 		s.SetHandler(func(c Ctx) error {
 			msg := c.Data
@@ -102,55 +109,61 @@ func (qn *QuicMesh) setupTunnel(wg *sync.WaitGroup) {
 			c.localIf.Write(c.Data)
 			return nil
 		})
-		qn.logger.Fatal(s.StartServer(ctx, qn.connections))
+		qn.logger.Fatal(s.StartServer(ctx, qn.connections, wg))
 	}()
-	//sleep for random time to allow server to start
-	time.Sleep(15 * time.Second)
 
-	// client mode
-	peer := qn.qc.peers[0]
-	go func() {
-		_, cancel := context.WithCancel(context.Background())
-		defer cancel()
+	wg.Wait()
 
-		c := NewClient(peer.endpoint, qn.qc.nodeInterface.localNodeIp, qn.qc.nodeInterface.listenPort, qn.localIf, qn.logger)
+	//range over all peers and create client connections
+	for _, peer := range qn.qc.peers {
+		qn.logger.Debugf("Starting client for peer %s", peer.endpoint)
+		go func(peer Peer) {
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
 
-		//split endpoint to get ip and port
-		host, _, err := net.SplitHostPort(peer.endpoint)
-		if err != nil {
-			qn.logger.Fatalf("Failed to split host and port: %v", err)
-		}
-		if conn, ok := qn.connections[host]; ok {
-			qn.logger.Infof("Connection already exists for peer endpoint %s", peer.endpoint)
-			c.SetConnection(conn)
-		} else {
-			qn.logger.Infof("No existing connection to the peer endpoint %s.", peer.endpoint)
+			c := NewClient(peer.endpoint, qn.qc.nodeInterface.localNodeIp, qn.qc.nodeInterface.listenPort, qn.localIf, qn.logger)
 
-			c.SetHandler(func(c Ctx) error {
-				msg := c.Data
-				qn.logger.Debugf("Client [ %s ] sent a message [ %v ] over server initiated connection", c.RemoteAddr().String(), msg)
-				c.localIf.Write(c.Data)
-				return nil
-			})
-
-			//write while loop to call Dial till condition becomes true
-			retries := 0
-			for {
-				err := c.Dial()
-				if err != nil {
-					qn.logger.Warnf("Failed to dial: %v", err)
-					qn.logger.Warnf("Retrying to dial %s", peer.endpoint)
-					retries++
-				} else {
-					break
-				}
-				if retries > 5 {
-					break
-				}
-				time.Sleep(10 * time.Second)
+			//split endpoint to get ip and port
+			host, _, err := net.SplitHostPort(peer.endpoint)
+			if err != nil {
+				qn.logger.Fatalf("Failed to split host and port: %v", err)
 			}
 
-		}
+			err = RetryOperation(ctx, retryInterval, retries, func() error {
+				if conn, ok := qn.connections[host]; ok {
+					qn.logger.Infof("Connection already exists for peer endpoint %s", peer.endpoint)
+					c.SetConnection(conn)
+					return nil
+				} else {
+					qn.logger.Debugf("No existing connection to the peer endpoint %s.", peer.endpoint)
+
+					err := c.Dial()
+					if err != nil {
+						qn.logger.Debugf("Failed to dial: %v", err)
+						qn.logger.Warnf("Retrying to dial %s", peer.endpoint)
+						return err
+					} else {
+						qn.logger.Infof("Dialed new connection to peer endpoint %s.", peer.endpoint)
+						c.AttachHandler(func(c Ctx) error {
+							msg := c.Data
+							qn.logger.Debugf("Client [ %s ] sent a message [ %v ] over server initiated connection", c.RemoteAddr().String(), msg)
+							c.localIf.Write(c.Data)
+							return nil
+						})
+						return nil
+					}
+				}
+			})
+			if err != nil {
+				qn.logger.Fatalf("Peer is not reachable or : %v", err)
+			}
+			qn.clients[peer.allowedIPs[0]] = c
+		}(peer)
+	}
+}
+
+func (qn *QuicMesh) enableTrafficForwarding() error {
+	go func() error {
 		// Start reading packets from the TUN interface
 		packet := make([]byte, 1500)
 		for {
@@ -160,12 +173,21 @@ func (qn *QuicMesh) setupTunnel(wg *sync.WaitGroup) {
 				panic(err)
 			}
 
+			dstIp := net.IP(packet[16:20])
+
 			// Do something with the packet
-			qn.logger.Debugf("Received packet from local tun interface: %v", packet[:n])
-			err = c.SendBytes(packet[:n])
-			if err != nil {
-				qn.logger.Errorf("failed to send client message: %v", err)
+			qn.logger.Debugf("Received packet from local tun interface: %v for destination %s", packet[:n], dstIp.String())
+
+			//check if dstIp is in the list of peers
+			if c, ok := qn.clients[dstIp.String()]; ok {
+				err = c.SendBytes(packet[:n])
+				if err != nil {
+					qn.logger.Errorf("failed to send client message: %v", err)
+				}
+			} else {
+				qn.logger.Debugf("No client connection found for destination IP %s", dstIp.String())
 			}
 		}
 	}()
+	return nil
 }
