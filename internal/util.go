@@ -1,6 +1,7 @@
 package quicmesh
 
 import (
+	"context"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/tls"
@@ -8,7 +9,9 @@ import (
 	"encoding/pem"
 	"math/big"
 	"os"
+	"time"
 
+	"github.com/cenkalti/backoff/v4"
 	"github.com/quic-go/quic-go"
 	"github.com/songgao/water"
 )
@@ -54,6 +57,18 @@ func handleMsg(tunIp *water.Interface, conn quic.Connection, handler Handler) er
 			return err
 		}
 	}
+}
+
+// RetryOperation retries the operation with a backoff policy.
+func RetryOperation(ctx context.Context, wait time.Duration, retries int, operation func() error) error {
+	bo := backoff.WithMaxRetries(
+		backoff.NewConstantBackOff(wait),
+		uint64(retries),
+	)
+	bo = backoff.WithContext(bo, ctx)
+	err := backoff.Retry(operation, bo)
+
+	return err
 }
 
 func getHostname() string {

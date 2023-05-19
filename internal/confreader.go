@@ -7,21 +7,21 @@ import (
 	"strings"
 )
 
-type peer struct {
+type Peer struct {
 	allowedIPs          []string
 	endpoint            string
 	persistentKeepalive string
 }
 
-type nodeInterface struct {
+type NodeInterface struct {
 	listenPort    int
 	localEndpoint string
 	localNodeIp   string
 }
 
 type QuicConf struct {
-	nodeInterface nodeInterface
-	peers         []peer
+	nodeInterface NodeInterface
+	peers         []Peer
 }
 
 func readQuicConf(qc *QuicConf, configFile string) error {
@@ -57,7 +57,7 @@ func readQuicConf(qc *QuicConf, configFile string) error {
 			}
 
 			if section != "" && section == "Peer" {
-				qc.peers = append(qc.peers, peer{
+				qc.peers = append(qc.peers, Peer{
 					allowedIPs:          allowedIPs,
 					endpoint:            endpoint,
 					persistentKeepalive: persistentKeepalive,
@@ -110,7 +110,7 @@ func readQuicConf(qc *QuicConf, configFile string) error {
 	}
 
 	if section != "" && section == "Peer" {
-		qc.peers = append(qc.peers, peer{
+		qc.peers = append(qc.peers, Peer{
 			allowedIPs:          allowedIPs,
 			endpoint:            endpoint,
 			persistentKeepalive: persistentKeepalive,
