@@ -23,7 +23,7 @@ ListenPort = 55380
 
 [Peer]
 # Tunnel IP address assigned to the peer by it's agent
-AllowedIPs = 100.100.0.2 
+AllowedIPs = 10.100.0.2 
 # Reflexive IP address of the Peer
 Endpoint = xxx.xxx.xxx.xxx:55380 
 # Keep alive interval for QUIC connection
