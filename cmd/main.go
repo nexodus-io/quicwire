@@ -52,6 +52,8 @@ func qnetRun(cCtx *cli.Context, logger *zap.Logger) error {
 	qmesh, err := quicmesh.NewQuicMesh(
 		logger.Sugar(),
 		cCtx.String("config-file"),
+		cCtx.Bool("disable-client"),
+		cCtx.Bool("disable-server"),
 	)
 	if err != nil {
 		logger.Fatal(err.Error())
@@ -99,6 +101,20 @@ func main() {
 				Value:    "",
 				Usage:    "Quic network configuration file",
 				Required: true,
+				Category: tunnelOptions,
+			},
+			&cli.BoolFlag{
+				Name:     "disable-client",
+				Value:    false,
+				Usage:    "Disable client function",
+				Required: false,
+				Category: tunnelOptions,
+			},
+			&cli.BoolFlag{
+				Name:     "disable-server",
+				Value:    false,
+				Usage:    "Disable server function",
+				Required: false,
 				Category: tunnelOptions,
 			},
 			&cli.StringFlag{

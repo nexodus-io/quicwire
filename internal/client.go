@@ -62,7 +62,7 @@ func (c *Client) Dial() error {
 		NextProtos:         []string{"some-proto"},
 	}
 
-	// udpAddr, err := net.ResolveUDPAddr("udp", c.Addr)
+	// udpAddr, err := net.ResolveUDPAddr("udp", c.addr)
 	// if err != nil {
 	// 	return err
 	// }
@@ -72,9 +72,8 @@ func (c *Client) Dial() error {
 	// 	return err
 	// }
 
-	// conn, err := quic.Dial(udpConn, udpAddr, c.Addr, tlsConf, &quic.Config{
-	// 	MaxIdleTimeout:  60,
-	// 	KeepAlivePeriod: 30,
+	// conn, err := quic.Dial(udpConn, udpAddr, c.addr, tlsConf, &quic.Config{
+	// 	KeepAlivePeriod: 10,
 	// 	EnableDatagrams: true,
 	// })
 

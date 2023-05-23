@@ -20,6 +20,16 @@ build-stun:  dist ## Build stun client
 	$(ECHO_PREFIX) printf "  %-12s $@\n" "[GO BUILD]"
 	$(CMD_PREFIX) CGO_ENABLED=0 go build -gcflags="$(NEXODUS_GCFLAGS)" -o ./dist ./hack/stun-client
 
+.PHONY: build-udpserver
+build-udpserver:  dist ## Build udp server
+	$(ECHO_PREFIX) printf "  %-12s $@\n" "[GO BUILD]"
+	$(CMD_PREFIX) CGO_ENABLED=0 go build -gcflags="$(NEXODUS_GCFLAGS)" -o ./dist ./hack/udpserver
+
+.PHONY: build-udpclient
+build-udpclient:  dist ## Build udp server
+	$(ECHO_PREFIX) printf "  %-12s $@\n" "[GO BUILD]"
+	$(CMD_PREFIX) CGO_ENABLED=0 go build -gcflags="$(NEXODUS_GCFLAGS)" -o ./dist ./hack/udpclient
+
 .PHONY: fire-stun
 fire-stun:   ## Run stun client
 	$(CMD_PREFIX) ./dist/stun-client -source-port 55380 -check-symmetric
