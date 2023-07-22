@@ -36,7 +36,25 @@ PersistentKeepalive = 10
 Run the following command on each node with it's respective config file.
 
 ```bash
-./dist/quicmesh -config hack/<update_conf_file.conf>
+./dist/quicmesh --config-file hack/<update_conf_file.conf>
 ```
 
 You need to update the sample file for each of the node that you want to connect to this mesh network. If you have more than one peer to connect to, add [Peer] section per peer in the config file.
+
+## Utilities
+
+### Stun-client
+
+If you would like to find the reflexive address of the node, you can use the utility present in `hack/stun-client`. This is a simple stun client that will send a stun request to the server and print the reflexive address of the node.
+
+```bash
+# ./dist/stun-client --source-port 55380 -stun-server stun1.l.google.com:19302
+```
+
+It should output the reflexive address and the port number used by your NAT device to forward the request to the server.
+
+```
+INFO[0000] Stun request to [stun1.l.google.com:19302]:55380 result is: 44.203.3.88:55380
+```
+
+You can use this information to update the Peer's Endpoint field in the config file.
