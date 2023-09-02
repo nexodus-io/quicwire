@@ -56,28 +56,18 @@ func (c *Client) SetConnection(conn quic.Connection) {
 }
 
 // Dial establishes a connection to the peer
-func (c *Client) Dial() error {
+func (c *Client) Dial(udpConn *net.UDPConn) error {
 	tlsConf := &tls.Config{
 		InsecureSkipVerify: true,
 		NextProtos:         []string{"some-proto"},
 	}
 
-	// udpAddr, err := net.ResolveUDPAddr("udp", c.addr)
-	// if err != nil {
-	// 	return err
-	// }
+	udpAddr, err := net.ResolveUDPAddr("udp", c.addr)
+	if err != nil {
+		return err
+	}
 
-	// udpConn, err := net.ListenUDP("udp", &net.UDPAddr{IP: c.localip, Port: 0})
-	// if err != nil {
-	// 	return err
-	// }
-
-	// conn, err := quic.Dial(udpConn, udpAddr, c.addr, tlsConf, &quic.Config{
-	// 	KeepAlivePeriod: 10,
-	// 	EnableDatagrams: true,
-	// })
-
-	conn, err := quic.DialAddr(c.addr, tlsConf, &quic.Config{
+	conn, err := quic.Dial(udpConn, udpAddr, c.addr, tlsConf, &quic.Config{
 		KeepAlivePeriod: 10,
 		EnableDatagrams: true,
 	})

@@ -34,19 +34,9 @@ func (s *Server) SetHandler(handler Handler) {
 }
 
 // StartServer starts the server and listens for incoming connections
-func (s *Server) StartServer(ctx context.Context, qm *QuicMesh, wg *sync.WaitGroup) error {
-	// Split the host and port in s.addr
-	_, port, _ := net.SplitHostPort(s.addr)
-	addr := fmt.Sprintf(":%s", port)
-	udpAddr, err := net.ResolveUDPAddr("udp4", addr)
-	if err != nil {
-		return err
-	}
-	conn, err := net.ListenUDP("udp4", udpAddr)
-	if err != nil {
-		return err
-	}
-	listener, err := quic.Listen(conn, getTLSConfig(), &quic.Config{
+// StartServer starts the server and listens for incoming connections
+func (s *Server) StartServer(ctx context.Context, udpConn *net.UDPConn, qm *QuicMesh, wg *sync.WaitGroup) error {
+	listener, err := quic.Listen(udpConn, getTLSConfig(), &quic.Config{
 		KeepAlivePeriod: 10,
 		EnableDatagrams: true,
 	})
