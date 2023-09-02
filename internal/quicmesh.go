@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"os/exec"
+	"strconv"
 	"sync"
 	"time"
 
@@ -16,6 +17,7 @@ import (
 const (
 	retryInterval = 5 * time.Second
 	retries       = 10
+	tunDevMTU     = 1190
 )
 
 type packetContext struct {
@@ -110,11 +112,19 @@ func (qn *QuicMesh) createTunIface() error {
 	}
 	qn.logger.Debugf("IP address assigned to TUN interface")
 
+	// Set the MTU
+	tunDevMTUString := strconv.Itoa(tunDevMTU)
+	cmd = exec.Command("ip", "link", "set", "dev", iface.Name(), "mtu", tunDevMTUString)
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to set the MTU: %v", err)
+	}
+
 	// Up the TUN interface
 	cmd = exec.Command("ip", "link", "set", "dev", iface.Name(), "up")
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to change the state to UP for the TUN interface: %v", err)
 	}
+
 	qn.logger.Debugf("TUN interface %s is up and running", iface.Name())
 	qn.localIf = iface
 
@@ -141,6 +151,17 @@ func (qn *QuicMesh) findPortBinding() (string, error) {
 }
 
 func (qn *QuicMesh) setupTunnel(wg *sync.WaitGroup, disableClient bool, disableServer bool) {
+	// Create a shared UDP socket
+	localipPortStr := fmt.Sprintf("%s:%d", qn.qc.nodeInterface.localNodeIP, qn.qc.nodeInterface.listenPort)
+	udpAddr, err := net.ResolveUDPAddr("udp4", localipPortStr)
+	if err != nil {
+		qn.logger.Fatalf("Failed to resolve UDP address: %v", err)
+	}
+	udpConn, err := net.ListenUDP("udp4", udpAddr)
+	if err != nil {
+		qn.logger.Fatalf("Failed to create shared UDP socket: %v", err)
+	}
+
 	if !disableServer {
 		wg.Add(1)
 		go func() {
@@ -148,7 +169,6 @@ func (qn *QuicMesh) setupTunnel(wg *sync.WaitGroup, disableClient bool, disableS
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
-			localipPortStr := fmt.Sprintf("%s:%d", qn.qc.nodeInterface.localNodeIP, qn.qc.nodeInterface.listenPort)
 			qn.logger.Infof("Starting server on %s", localipPortStr)
 			s := NewServer(localipPortStr, qn.localIf, qn.logger)
 			s.SetHandler(func(c packetContext) error {
@@ -157,7 +177,7 @@ func (qn *QuicMesh) setupTunnel(wg *sync.WaitGroup, disableClient bool, disableS
 				c.localIf.Write(c.Data)
 				return nil
 			})
-			qn.logger.Fatal(s.StartServer(ctx, qn, wg))
+			qn.logger.Fatal(s.StartServer(ctx, udpConn, qn, wg))
 		}()
 		wg.Wait()
 	}
@@ -194,7 +214,7 @@ func (qn *QuicMesh) setupTunnel(wg *sync.WaitGroup, disableClient bool, disableS
 					}
 					qn.logger.Debugf("No existing connection to the peer endpoint %s.", peer.endpoint)
 
-					err := c.Dial()
+					err := c.Dial(udpConn)
 					if err != nil {
 						qn.logger.Debugf("Failed to dial: %v", err)
 						qn.logger.Warnf("Retrying to dial %s", peer.endpoint)

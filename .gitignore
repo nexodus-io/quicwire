@@ -24,3 +24,7 @@
 go.work
 
 /localconf
+
+# misc
+.DS_Store
+.idea/
