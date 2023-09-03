@@ -230,7 +230,7 @@ func (qn *QuicMesh) setupTunnel(wg *sync.WaitGroup, disableClient bool, disableS
 					return nil
 				})
 				if err != nil {
-					qn.logger.Fatalf("Peer is not reachable or : %v", err)
+					qn.logger.Warnf("Peer %s is not reachable or : %v", peer.endpoint, err)
 				}
 				qn.clients[peer.allowedIPs[0]] = c
 			}(peer)
