@@ -105,7 +105,20 @@ func (qn *QuicWire) createTunIface() error {
 	qn.logger.Debugf("TUN interface created: %s", iface.Name())
 
 	// Assign an IP address to the TUN interface
-	tunnelIPStr := fmt.Sprintf("%s/24", qn.qc.nodeInterface.localEndpoint)
+	var tunnelIPStr string
+	ip, ipNet, err := net.ParseCIDR(qn.qc.nodeInterface.localEndpoint)
+	if err != nil {
+		// If it's not a CIDR, treat it as a plain IP supplied and append a /24 as a default prefix for convenience
+		ip = net.ParseIP(qn.qc.nodeInterface.localEndpoint)
+		if ip == nil {
+			return fmt.Errorf("invalid IP address format: %s", qn.qc.nodeInterface.localEndpoint)
+		}
+		tunnelIPStr = fmt.Sprintf("%s/24", ip.String())
+	} else {
+		// If a mask was supplied honor it here
+		ones, _ := ipNet.Mask.Size()
+		tunnelIPStr = fmt.Sprintf("%s/%d", ip.String(), ones)
+	}
 	cmd := exec.Command("ip", "addr", "add", tunnelIPStr, "dev", iface.Name())
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to assign IP address to TUN interface: %w", err)
