@@ -1,4 +1,4 @@
-package quicmesh
+package quicwire
 
 import (
 	"context"
@@ -35,7 +35,7 @@ func (s *Server) SetHandler(handler Handler) {
 
 // StartServer starts the server and listens for incoming connections
 // StartServer starts the server and listens for incoming connections
-func (s *Server) StartServer(ctx context.Context, udpConn *net.UDPConn, qm *QuicMesh, wg *sync.WaitGroup) error {
+func (s *Server) StartServer(ctx context.Context, udpConn *net.UDPConn, qm *QuicWire, wg *sync.WaitGroup) error {
 	listener, err := quic.Listen(udpConn, getTLSConfig(), &quic.Config{
 		KeepAlivePeriod: 10,
 		EnableDatagrams: true,

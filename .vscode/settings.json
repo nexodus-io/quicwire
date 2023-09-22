@@ -2,6 +2,7 @@
 	"editor.insertSpaces": false,
 	"cSpell.words": [
 		"backoff",
-		"Debugf"
+		"Debugf",
+		"quicwire"
 	]
 }
