@@ -1,4 +1,4 @@
-package quicmesh
+package quicwire
 
 import (
 	"bufio"
@@ -7,21 +7,21 @@ import (
 	"strings"
 )
 
-// Peer represents a peer in the quicmesh configuration file
+// Peer represents a peer in the quicwire configuration file
 type Peer struct {
 	allowedIPs          []string
 	endpoint            string
 	persistentKeepalive string
 }
 
-// nodeInterface represents the node interface in the quicmesh configuration file
+// nodeInterface represents the node interface in the quicwire configuration file
 type nodeInterface struct {
 	listenPort    int
 	localEndpoint string
 	localNodeIP   string
 }
 
-// QuicConf contains the quicmesh configuration file data
+// QuicConf contains the quicwire configuration file data
 type QuicConf struct {
 	nodeInterface nodeInterface
 	peers         []Peer

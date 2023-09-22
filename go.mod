@@ -1,4 +1,4 @@
-module github.com/packetdrop/quicmesh
+module github.com/packetdrop/quicwire
 
 go 1.20
 

@@ -1,4 +1,4 @@
-package quicmesh
+package quicwire
 
 import (
 	"fmt"

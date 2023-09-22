@@ -9,13 +9,13 @@ import (
 	"sync"
 	"syscall"
 
-	quicmesh "github.com/packetdrop/quicmesh/internal"
+	quicwire "github.com/packetdrop/quicwire/internal"
 	"github.com/urfave/cli/v2"
 	"go.uber.org/zap"
 )
 
 const (
-	qnetLogEnv    = "QMESH_LOGLEVEL"
+	qnetLogEnv    = "QUICWIRE_LOGLEVEL"
 	tunnelOptions = "Tunnel Options"
 	miscOptions   = "Misc Options"
 )
@@ -49,7 +49,7 @@ func qnetRun(cCtx *cli.Context, logger *zap.Logger) error {
 		}
 	}
 
-	qmesh, err := quicmesh.NewQuicMesh(
+	quicwire, err := quicwire.NewQuicWire(
 		logger.Sugar(),
 		cCtx.String("config-file"),
 		cCtx.Bool("disable-client"),
@@ -61,11 +61,11 @@ func qnetRun(cCtx *cli.Context, logger *zap.Logger) error {
 
 	wg := &sync.WaitGroup{}
 
-	if err := qmesh.Start(ctx, wg); err != nil {
+	if err := quicwire.Start(ctx, wg); err != nil {
 		logger.Fatal(err.Error())
 	}
 	<-ctx.Done()
-	qmesh.Stop()
+	quicwire.Stop()
 	wg.Wait()
 
 	return nil
@@ -93,7 +93,7 @@ func main() {
 	cli.HelpFlag.(*cli.BoolFlag).Usage = "Show help"
 	// flags are stored in the global flags variable
 	app := &cli.App{
-		Name:  "qmesh",
+		Name:  "qw",
 		Usage: "Agent to configure encrypted mesh networking using QUIC protocol.",
 		Flags: []cli.Flag{
 			&cli.StringFlag{

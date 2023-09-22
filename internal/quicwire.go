@@ -1,4 +1,4 @@
-package quicmesh
+package quicwire
 
 import (
 	"context"
@@ -26,8 +26,8 @@ type packetContext struct {
 	Data []byte
 }
 
-// QuicMesh struct holds state need to enable connectivity to peers
-type QuicMesh struct {
+// QuicWire struct holds state need to enable connectivity to peers
+type QuicWire struct {
 	qc         *QuicConf
 	logger     *zap.SugaredLogger
 	configFile string
@@ -47,13 +47,13 @@ type QuicMesh struct {
 	disableServer bool
 }
 
-// NewQuicMesh creates a new QuicMesh
-func NewQuicMesh(logger *zap.SugaredLogger,
+// NewQuicWire creates a new QuicWire
+func NewQuicWire(logger *zap.SugaredLogger,
 	configFile string,
 	disableClient bool,
-	disableServer bool) (*QuicMesh, error) {
+	disableServer bool) (*QuicWire, error) {
 
-	qn := &QuicMesh{
+	qn := &QuicWire{
 		qc:            &QuicConf{},
 		logger:        logger,
 		configFile:    configFile,
@@ -65,15 +65,15 @@ func NewQuicMesh(logger *zap.SugaredLogger,
 	return qn, nil
 }
 
-// Start Initializes the QuicMesh network
-func (qn *QuicMesh) Start(ctx context.Context, wg *sync.WaitGroup) error {
-	qn.logger.Info("QuicMesh Starting")
+// Start Initializes the QuicWire network
+func (qn *QuicWire) Start(ctx context.Context, wg *sync.WaitGroup) error {
+	qn.logger.Info("QuicWire Starting")
 	qn.logger.Infof("Read the quic config file : %s", qn.configFile)
 	err := readQuicConf(qn.qc, qn.configFile)
 	if err != nil {
 		return err
 	}
-	qn.logger.Debugf("QuicMesh config: %v", qn.qc)
+	qn.logger.Debugf("QuicWire config: %v", qn.qc)
 	qn.logger.Info("Create tunnel interface on local host")
 	if err := qn.createTunIface(); err != nil {
 		return err
@@ -91,12 +91,12 @@ func (qn *QuicMesh) Start(ctx context.Context, wg *sync.WaitGroup) error {
 	return nil
 }
 
-// Stop stops the QuicMesh network
-func (qn *QuicMesh) Stop() {
-	qn.logger.Info("QuicMesh Stop")
+// Stop stops the QuicWire network
+func (qn *QuicWire) Stop() {
+	qn.logger.Info("QuicWire Stop")
 }
 
-func (qn *QuicMesh) createTunIface() error {
+func (qn *QuicWire) createTunIface() error {
 	// Create a TUN interface
 	iface, err := water.New(water.Config{DeviceType: water.TUN})
 	if err != nil {
@@ -131,7 +131,7 @@ func (qn *QuicMesh) createTunIface() error {
 	return nil
 }
 
-func (qn *QuicMesh) findPortBinding() (string, error) {
+func (qn *QuicWire) findPortBinding() (string, error) {
 
 	isSymmetric, err := IsSymmetricNAT(qn.qc.nodeInterface.listenPort)
 	if err != nil {
@@ -150,7 +150,7 @@ func (qn *QuicMesh) findPortBinding() (string, error) {
 	return res, nil
 }
 
-func (qn *QuicMesh) setupTunnel(wg *sync.WaitGroup, disableClient bool, disableServer bool) {
+func (qn *QuicWire) setupTunnel(wg *sync.WaitGroup, disableClient bool, disableServer bool) {
 	// Create a shared UDP socket
 	localipPortStr := fmt.Sprintf("%s:%d", qn.qc.nodeInterface.localNodeIP, qn.qc.nodeInterface.listenPort)
 	udpAddr, err := net.ResolveUDPAddr("udp4", localipPortStr)
@@ -238,7 +238,7 @@ func (qn *QuicMesh) setupTunnel(wg *sync.WaitGroup, disableClient bool, disableS
 	}
 }
 
-func (qn *QuicMesh) enableTrafficForwarding() error {
+func (qn *QuicWire) enableTrafficForwarding() error {
 	go func() error {
 		// Start reading packets from the TUN interface
 		packet := make([]byte, 1500)
