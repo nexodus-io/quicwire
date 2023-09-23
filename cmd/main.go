@@ -9,7 +9,7 @@ import (
 	"sync"
 	"syscall"
 
-	quicwire "github.com/packetdrop/quicwire/internal"
+	quicwire "github.com/nexodus-io/quicwire/internal"
 	"github.com/urfave/cli/v2"
 	"go.uber.org/zap"
 )
