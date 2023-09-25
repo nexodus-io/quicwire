@@ -44,3 +44,20 @@ prep:  ## Format source code
 .PHONY: clean
 clean: ## Clean quicwire binaries
 	$(CMD_PREFIX) rm -rd dist
+
+BINS := qw
+OS := darwin windows linux linux
+ARCH := amd64 amd64 amd64 arm64
+
+# build qw for all target OS/Arch
+.PHONY: build-all-os
+build-all-os:
+	@for bin in $(BINS); do \
+		for os in $(OS); do \
+			for arch in $(ARCH); do \
+				output=dist/$$bin-$$os-$$arch; \
+				[ $$os = "windows" ] && output=$$output.exe; \
+				GOOS=$$os GOARCH=$$arch CGO_ENABLED=0 go build -gcflags="$(QUICWIRE_GCFLAGS)" -o $$output ./cmd/; \
+			done \
+		done \
+	done
