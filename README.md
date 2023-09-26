@@ -10,7 +10,9 @@ It's an attempt to implement a wireguard like tunneled mesh network using QUIC p
 make build
 ```
 
-## Update the sample config file present [here](./hack/sample.conf). If you attempted to do tunneling with wireguard, this format should be familiar to you
+## Configuration
+
+Update the sample config file present [here](./hack/sample.conf). If you attempted to do tunneling with wireguard, this format should be familiar to you.
 
 ```text
 [Interface]
@@ -53,7 +55,9 @@ If you would like to find the reflexive address of the node, you can use the uti
 build-stun
 ```
 
-#### Run the stun-client binary to find the reflexive address
+#### Run the stun-client 
+
+Run the stun client binary to find the reflexive address (e.g., the public address portion of your NAT binding at the point your device as seen from the STUN server perspective)
 
 ```bash
 ./dist/stun-client --source-port 55380 -stun-server stun1.l.google.com:19302
